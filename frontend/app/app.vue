@@ -5,29 +5,10 @@
 </template>
 
 <script setup lang="ts">
-const theme = useState< 'light' | 'dark' > ('theme', () => 'light')
-
-watch(
-  theme,
-  (val) => {
-    if (process.client) document.documentElement.dataset.theme = val
-  },
-  { immediate: true }
-)
 </script>
 
 <style>
 :root {
-  --bg: #f8fafc;
-  --panel: #ffffff;
-  --text: #0f172a;
-  --muted: #475569;
-  --accent: #2563eb;
-  --accent-2: #2563eb;
-  --shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-:root[data-theme="dark"] {
   --bg: #0b1224;
   --panel: #111827;
   --text: #e5e7eb;
