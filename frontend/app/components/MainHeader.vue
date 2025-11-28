@@ -4,15 +4,31 @@
       <NuxtLink to="/">Dashboard</NuxtLink>
       <NuxtLink to="/about">About</NuxtLink>
     </nav>
-    <button class="theme-btn" @click="toggleTheme">
-      {{ theme === 'dark' ? 'Light' : 'Dark' }} mode
-    </button>
+    <div class="nav-actions">
+      <button v-if="user" @click="handleLogout">Logout</button>
+      <NuxtLink v-else to="/login" class="login-btn">Login</NuxtLink>
+    </div>
   </header>
 </template>
 
 <script lang="ts" setup>
-const theme = useState<'light' | 'dark'>('theme', () => 'light')
-const toggleTheme = () => (theme.value = theme.value === 'dark' ? 'light' : 'dark')
+const user = useUser();
+
+async function handleLogout() {
+  await useCsrf();
+  const csrfToken = useCookie("csrftoken").value ?? "";
+
+  await $fetch("http://localhost:8000/api/auth/logout/", {
+    method: "POST",
+    headers: {
+      "CSRFToken": csrfToken,
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  });
+
+  user.value = null;
+}
 </script>
 
 <style>
@@ -35,12 +51,15 @@ nav a {
   color: var(--text);
 }
 
-.theme-btn {
+.nav-actions {
+  margin-left: auto;
+}
+
+.login-btn {
   background: var(--accent);
   color: white;
-  border: none;
   padding: 8px 12px;
   border-radius: 6px;
-  cursor: pointer;
+  text-decoration: none;
 }
 </style>

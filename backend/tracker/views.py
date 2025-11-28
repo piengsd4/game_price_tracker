@@ -1,5 +1,6 @@
-from django.db.models import Prefetch
-from django.contrib.postgres.search import TrigramSimilarity
+from django.db.models import Prefetch, Q, Case, When, IntegerField
+from django.db.models.functions import Greatest
+from django.contrib.postgres.search import TrigramSimilarity, TrigramWordSimilarity
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -14,9 +15,18 @@ def search_games(request):
     
     queryset = (
         Game.objects.filter(platform__platform=Platform.STEAM)
-        .annotate(sim=TrigramSimilarity("title", query))
-        .filter(sim__gt=0.1)
-        .order_by("-sim", "title")
+        .annotate(
+            char_sim=TrigramSimilarity("title", query),
+            word_sim=TrigramWordSimilarity(query, "title"),
+            best_sim=Greatest("word_sim", "char_sim"),
+            icontains_hit=Case(
+                When(title__icontains=query, then=1),
+                default=0,
+                output_field=IntegerField(),
+            ),
+        )
+        .filter(Q(title__icontains=query) | Q(best_sim__gt=0.01))
+        .order_by("-icontains_hit", "-best_sim", "title")
         .prefetch_related(
             Prefetch("platform", queryset=GamePlatform.objects.filter(platform=Platform.STEAM))
         )
@@ -30,7 +40,7 @@ def search_games(request):
                 (platform.platform_game_id for platform in game.platform.all() if platform.platform == Platform.STEAM),
                 None,
             ),
-            "similarity": game.sim,
+            "similarity": game.best_sim,
         }
         for game in queryset
     ]
@@ -45,7 +55,7 @@ def get_wishlist_steam(request):
         .select_related("game")
         .prefetch_related(
             Prefetch("game__platform", queryset=GamePlatform.objects.filter(platform=Platform.STEAM)),
-            Prefetch("game__price", queryset=GamePriceCurrent.objects.filter(platform=Platform.STEAM)),
+            Prefetch("game__current_price", queryset=GamePriceCurrent.objects.filter(platform=Platform.STEAM)),
         )
     )
     
@@ -53,7 +63,7 @@ def get_wishlist_steam(request):
     
     for steam_wishlist in queryset:
         steam_platform = next((platform for platform in steam_wishlist.game.platform.all() if platform.platform == Platform.STEAM), None)
-        steam_price = next((price for price in steam_wishlist.game.price.all() if price.platform == Platform.STEAM), None)
+        steam_price = next((price for price in steam_wishlist.game.current_price.all() if price.platform == Platform.STEAM), None)
         data.append({
             "id": steam_wishlist.id,
             "title": steam_wishlist.game.title,
@@ -72,7 +82,11 @@ def add_to_wishlist(request):
     if not appid:
         return Response({"error": "appid is required"}, status=status.HTTP_400_BAD_REQUEST)
     
-    game_platform = GamePlatform.objects.filter(platform=Platform.STEAM, platform_game_id=appid).select_related("game")
+    game_platform = (
+        GamePlatform.objects.filter(platform=Platform.STEAM, platform_game_id=appid)
+        .select_related("game")
+        .first()
+    )
     if not game_platform:
         return Response({"error": "Cannot find requested appid"}, status=status.HTTP_404_NOT_FOUND)
     
