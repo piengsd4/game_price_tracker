@@ -1,17 +1,30 @@
 <template>
   <header class="main-header">
-    <i class="pi pi-github"></i><h1 class="main-title">Game Price Tracker</h1>
+    <i class="pi pi-car"></i><h1 class="main-title">Game Price Tracker</h1>
     <nav>
       <RouterLink to="/">My Wishlist</RouterLink>
       <RouterLink to="/about">About</RouterLink>
     </nav>
     <div class="nav-actions">
-      <button v-if="!auth.loading && auth.isAuthenticated" @click="handleLogout" class="logout-btn">Logout</button>
+      <div v-if="auth.loading">
+      </div>
+
+      <div v-else-if="auth.isAuthenticated">
+        <span class="current-user">Current User: <b>{{ auth.user?.username }}</b></span>
+        <button
+          @click="handleLogout"
+          class="logout-btn"
+        >
+          Logout
+        </button>
+      </div>
+
       <div v-else class="auth-buttons">
         <RouterLink to="/register" class="register-btn">Register</RouterLink>
         <RouterLink to="/login" class="login-btn">Login</RouterLink>
       </div>
     </div>
+
   </header>
 </template>
 
@@ -111,6 +124,10 @@ nav a:hover {
 
 .register-btn:hover {
   filter: brightness(0.8);
+}
+
+.current-user {
+  padding-right: 1rem;
 }
 
 .logout-btn {

@@ -63,14 +63,13 @@ type SearchResult = {
   similarity?: number
 }
 
-interface Props {
+const props = defineProps<{
   query: string
   searchResults: SearchResult[]
   searchLoading: boolean
   wishlistAddLoading: boolean
-}
+}>()
 
-const props = defineProps<Props>()
 const auth = useAuthStore();
 
 const emit = defineEmits<{

@@ -134,3 +134,22 @@ def add_to_wishlist(request):
         )
      
     return Response({ "ok": True })
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def remove_from_wishlist(request):
+    appid = request.data.get("appid")
+    if not appid:
+        return Response({"error": "appid not found in wishlist"}, status=status.HTTP_404_NOT_FOUND)
+    
+    wishlisted_qs = WishList.objects.filter(
+        user=request.user,
+        game__platform__platform=Platform.STEAM,
+        game__platform__platform_game_id=str(appid),
+    )
+    
+    deleted_count, _ = wishlisted_qs.delete()
+    if deleted_count == 0:
+        return Response({"error": "Game not found in wishlist"}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response(status=status.HTTP_204_NO_CONTENT)

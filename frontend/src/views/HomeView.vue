@@ -17,7 +17,11 @@
         @add-to-wishlist="addToWishlist"
       />
 
-      <WishlistCard :wishlist="wishlistStore.items" :loading="wishlistFetchLoading" />
+      <WishlistCard 
+        :wishlist="wishlistStore.items" 
+        :loading="wishlistFetchLoading" 
+        @remove-wishlist-game="handleRemoveWishlistGame" 
+      />
     </section>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -27,7 +31,7 @@
 
 <script setup lang="ts">
 import axios from 'axios'
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import GameSearchCard from '@/components/GameSearchCard.vue'
 import WishlistCard from '@/components/WishlistCard.vue'
 import { useToast } from 'vue-toastification'
@@ -108,7 +112,6 @@ const addToWishlist = async (appid: string | null) => {
 
   wishlistAddLoading.value = true
   error.value = ''
-  success.value = ''
 
   try {
     await axios.post('http://localhost:8000/api/wishlist/add/',
@@ -121,7 +124,6 @@ const addToWishlist = async (appid: string | null) => {
         },
       },
     )
-    success.value = 'Added to wishlist successfully'
     toast.success('Game added to wishlist successfully!')
     await fetchWishlist()
   } catch (e: any) {
@@ -129,6 +131,38 @@ const addToWishlist = async (appid: string | null) => {
   } finally {
     wishlistAddLoading.value = false
     setTimeout(() => (success.value = ''), 1500)
+  }
+}
+
+const handleRemoveWishlistGame = async (appid: string | null) => {
+  const confirm = window.confirm("Do you want to delete this game from your wishlist?")
+
+  if (confirm) {
+    if (!appid) return
+
+    await useCsrf()
+    const csrfToken = getCookie('csrftoken')
+
+    error.value = ''
+
+    try {
+      await axios.delete('http://localhost:8000/api/wishlist/remove/',
+        {
+          data: { appid },
+          withCredentials: true,
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+      toast.success('Game removed from wishlist successfully!')
+      await fetchWishlist()
+    } catch (e: any) {
+      error.value = e?.data?.error || 'Could not remove from wishlist'
+    } finally {
+      setTimeout(() => (success.value = ''), 1500)
+    }
   }
 }
 

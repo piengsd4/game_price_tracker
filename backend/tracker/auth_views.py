@@ -6,15 +6,15 @@ from django.views.decorators.csrf import csrf_protect
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def get_csrf(request):
     csrf_token = get_token(request)
     return Response({ "csrfToken": csrf_token })
 
 @api_view(["POST"])
-@authentication_classes([])
 @permission_classes([AllowAny])
 @csrf_protect
 def register_view(request):
@@ -38,7 +38,6 @@ def register_view(request):
     return Response({ "ok": True, "username": user.username }, status=201)
 
 @api_view(["POST"])
-@authentication_classes([])
 @permission_classes([AllowAny])
 @csrf_protect
 def login_view(request):
@@ -58,16 +57,13 @@ def login_view(request):
     return Response({ "ok": True, "username": user.username })
 
 @api_view(["POST"])
-@authentication_classes([])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 @csrf_protect
 def logout_view(request):
     logout(request)
     return Response({ "ok": True })
 
 @api_view(["GET"])
-@authentication_classes([])
-@permission_classes([AllowAny])
 def session_view(request):
     user = request.user
 

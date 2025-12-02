@@ -17,6 +17,7 @@
         <div>
           <p class="title">{{ item.title }}</p>
           <p class="muted">AppID: {{ item.steam_appid ?? '—' }}</p>
+          <button @click="removeWishlistGame(item.steam_appid ?? '')" class="remove-game-btn">Remove</button>
         </div>
 
         <div
@@ -40,8 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { VueSpinner, VueSpinnerDots } from 'vue3-spinners';
+import { VueSpinnerDots } from 'vue3-spinners';
+import { defineEmits } from 'vue';
 
 type WishlistItem = {
   id: number
@@ -56,6 +57,14 @@ const props = defineProps<{
   wishlist: WishlistItem[]
   loading?: boolean
 }>()
+
+const emit = defineEmits<{
+  'remove-wishlist-game': [appid: string | null]
+}>()
+
+function removeWishlistGame(appid: string | null) {
+  emit('remove-wishlist-game', appid)
+}
 </script>
 
 <style scoped>
@@ -63,5 +72,13 @@ const props = defineProps<{
   display: flex;
   justify-content: center;
   padding-top: 2rem;
+}
+
+.remove-game-btn {
+  background: darkred;
+}
+
+.remove-game-btn:hover {
+  filter: brightness(0.8);
 }
 </style>
