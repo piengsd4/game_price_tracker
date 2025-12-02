@@ -17,7 +17,7 @@
         @add-to-wishlist="addToWishlist"
       />
 
-      <WishlistCard :wishlist="wishlist" />
+      <WishlistCard :wishlist="wishlistStore.items" :loading="wishlistFetchLoading" />
     </section>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -33,6 +33,8 @@ import WishlistCard from '@/components/WishlistCard.vue'
 import { useToast } from 'vue-toastification'
 import { useCsrf } from '@/composables/useCsrf'
 import { getCookie } from '@/helper/getCookie'
+import { useWishlistStore } from '@/stores/wishlist'
+import { useAuthStore } from '@/stores/auth'
 
 type WishlistItem = {
   id: number
@@ -50,22 +52,29 @@ type SearchResult = {
 }
 
 const query = ref('')
-const wishlist = ref<WishlistItem[]>([])
+const wishlistStore = useWishlistStore();
+const wishlistAddLoading = ref(false)
+const wishlistFetchLoading = ref(false)
 const searchResults = ref<SearchResult[]>([])
 const searchLoading = ref(false)
-const wishlistAddLoading = ref(false)
-const error = ref('')
 const success = ref('')
+const error = ref('')
 
+const auth = useAuthStore();
 const toast = useToast();
 
 const fetchWishlist = async () => {
   error.value = ''
-  const res = await axios.get<WishlistItem[]>(
-    'http://localhost:8000/api/wishlist/steam',
-    { withCredentials: true },
-  )
-  wishlist.value = res.data
+  wishlistFetchLoading.value = true
+  try {
+    const res = await axios.get<WishlistItem[]>(
+      'http://localhost:8000/api/wishlist/steam',
+      { withCredentials: true },
+    )
+    wishlistStore.set(res.data);
+  } finally {
+    wishlistFetchLoading.value = false
+  }
 }
 
 const searchGames = async () => {
@@ -130,6 +139,16 @@ watch(query, () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => searchGames(), 300)
 })
+
+watch(
+  () => auth.isAuthenticated,
+  (isAuthenticated) => {
+    if (!isAuthenticated) {
+      query.value = '';
+      searchResults.value = [];
+    }
+  }
+)
 
 onMounted(() => {
   fetchWishlist()

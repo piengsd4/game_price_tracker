@@ -2,10 +2,10 @@
   <article class="panel">
     <div class="panel-head">
       <div>
-        <p class="eyebrow">Add</p>
+        <p class="eyebrow">Search & Add your to wishlist</p>
         <h2>Search results</h2>
       </div>
-      <span class="muted">{{ searchResults.length }} found</span>
+      <p class="login-warning" v-if="!auth.user">Login first to start wishlisting!</p>
     </div>
 
     <div class="search-box">
@@ -36,7 +36,7 @@
         <button
           class="secondary"
           @click="$emit('add-to-wishlist', game.steam_appid)"
-          :disabled="wishlistAddLoading || !game.steam_appid"
+          :disabled="wishlistAddLoading || !auth.user || !game.steam_appid"
         >
           Add
         </button>
@@ -54,6 +54,9 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '@/stores/auth'
+import { watch } from 'vue'
+
 type SearchResult = {
   title: string
   steam_appid: string
@@ -68,6 +71,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const auth = useAuthStore();
 
 const emit = defineEmits<{
   'update:query': [value: string]
@@ -80,3 +84,10 @@ const onInput = (event: Event) => {
   emit('update:query', value)
 }
 </script>
+
+<style scoped>
+.login-warning {
+  text-align: right;
+  color: red;
+}
+</style>

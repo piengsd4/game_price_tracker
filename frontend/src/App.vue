@@ -2,6 +2,12 @@
 import MainHeader from '@/components/MainHeader.vue';
 import MainFooter from '@/components/MainFooter.vue';
 import { RouterView } from 'vue-router';
+import { useAuthStore } from './stores/auth';
+import { onMounted } from 'vue';
+
+const auth = useAuthStore()
+
+onMounted(() => auth.hydrateSession())
 </script>
 
 <template>

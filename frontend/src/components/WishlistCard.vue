@@ -8,7 +8,11 @@
       <span class="muted">{{ wishlist.length }} total</span>
     </div>
 
-    <div class="list" v-if="wishlist.length">
+    <div v-if="loading" class="fetch-loading">
+      <VueSpinnerDots color="var(--accent)" size="80" />
+    </div>
+
+    <div class="list" v-else-if="wishlist.length">
       <div class="list-row" v-for="item in wishlist" :key="item.id">
         <div>
           <p class="title">{{ item.title }}</p>
@@ -19,9 +23,9 @@
           class="price-badge"
           v-if="item.price !== null && item.price !== undefined"
         >
-          <span class="price">{{ item.currency }} {{ item.price }}</span>
+          <span class="price">{{ item.price }} {{ item.currency }}</span>
           <span class="discount" v-if="item.discount_percent">
-            -{{ item.discount_percent }}%
+            (-{{ item.discount_percent }}%)
           </span>
         </div>
 
@@ -36,6 +40,9 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { VueSpinner, VueSpinnerDots } from 'vue3-spinners';
+
 type WishlistItem = {
   id: number
   title: string
@@ -47,5 +54,14 @@ type WishlistItem = {
 
 const props = defineProps<{
   wishlist: WishlistItem[]
+  loading?: boolean
 }>()
 </script>
+
+<style scoped>
+.fetch-loading {
+  display: flex;
+  justify-content: center;
+  padding-top: 2rem;
+}
+</style>

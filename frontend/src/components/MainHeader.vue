@@ -6,8 +6,11 @@
       <RouterLink to="/about">About</RouterLink>
     </nav>
     <div class="nav-actions">
-      <button v-if="auth.isAuthenticated" @click="handleLogout" class="logout-btn">Logout</button>
-      <RouterLink v-else to="/login" class="login-btn">Login</RouterLink>
+      <button v-if="!auth.loading && auth.isAuthenticated" @click="handleLogout" class="logout-btn">Logout</button>
+      <div v-else class="auth-buttons">
+        <RouterLink to="/register" class="register-btn">Register</RouterLink>
+        <RouterLink to="/login" class="login-btn">Login</RouterLink>
+      </div>
     </div>
   </header>
 </template>
@@ -17,24 +20,31 @@ import axios from 'axios';
 import { useCsrf } from '@/composables/useCsrf';
 import { getCookie } from '@/helper/getCookie';
 import { useAuthStore } from '@/stores/auth';
+import { useWishlistStore } from '@/stores/wishlist';
 
 const auth = useAuthStore();
+const wishlistStore = useWishlistStore();
 
 async function handleLogout() {
-  await useCsrf();
-  const csrfToken = getCookie("csrftoken");
+  const confirm = window.confirm("Are you sure you want to logout?");
 
-  await axios.post("http://localhost:8000/api/auth/logout/", {},
-    {
-      headers: {
-        "X-CSRFToken": csrfToken,
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    }
-  );
+  if (confirm) {
+    await useCsrf();
+    const csrfToken = getCookie("csrftoken");
 
-  auth.clearUser();
+    await axios.post("http://localhost:8000/api/auth/logout/", {},
+      {
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/json",
+        },
+        withCredentials: true,
+      }
+    );
+
+    auth.clearUser();
+    wishlistStore.clear();
+  }
 }
 </script>
 
@@ -74,6 +84,11 @@ nav a:hover {
   margin-left: auto;
 }
 
+.auth-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
 .login-btn {
   background: var(--accent);
   color: white;
@@ -83,6 +98,18 @@ nav a:hover {
 }
 
 .login-btn:hover {
+  filter: brightness(0.8);
+}
+
+.register-btn {
+  background: green;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.register-btn:hover {
   filter: brightness(0.8);
 }
 

@@ -1,3 +1,4 @@
+import requests
 from django.db.models import Prefetch, Q, Case, When, IntegerField
 from django.db.models.functions import Greatest
 from django.contrib.postgres.search import TrigramSimilarity, TrigramWordSimilarity
@@ -8,7 +9,6 @@ from rest_framework.response import Response
 from tracker.models import Game, GamePlatform, GamePriceCurrent, Platform, WishList
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
 def search_games(request):
     query = request.GET.get("query", "").strip()
     if not query:
@@ -60,6 +60,20 @@ def get_wishlist_steam(request):
         )
     )
     
+    # Refresh prices before returning
+    for item in queryset:
+        steam_platform = next((p for p in item.game.platform.all() if p.platform == Platform.STEAM), None)
+        if not steam_platform:
+            continue
+        
+        price_data = fetch_steam_price(steam_platform.platform_game_id)
+        if price_data:
+            GamePriceCurrent.objects.update_or_create(
+                game=item.game,
+                platform=Platform.STEAM,
+                defaults=price_data,
+            )
+    
     data = []
     
     for steam_wishlist in queryset:
@@ -76,6 +90,24 @@ def get_wishlist_steam(request):
 
     return Response(data)
 
+def fetch_steam_price(appid: str, currency="JPY"):
+    url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc={currency.lower()}&filters=price_overview"
+    try:
+        resp = requests.get(url, timeout=6)
+        resp.raise_for_status()
+        payload = resp.json().get(str(appid), {})
+        price = payload.get("data", {}).get("price_overview")
+        if not price:
+            return None
+        return {
+            "price": price["final"] / 100,
+            "original_price": price["initial"] / 100,
+            "discount_percent": price["discount_percent"],
+            "currency": price["currency"],
+        }
+    except Exception:
+        return None
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def add_to_wishlist(request):
@@ -91,5 +123,14 @@ def add_to_wishlist(request):
     if not game_platform:
         return Response({"error": "Cannot find requested appid"}, status=status.HTTP_404_NOT_FOUND)
     
-    WishList.objects.get_or_create(user=request.user, game=game_platform.game)
+    wishlist, _ = WishList.objects.get_or_create(user=request.user, game=game_platform.game)
+    
+    price_data = fetch_steam_price(appid=appid)
+    if price_data:
+        GamePriceCurrent.objects.update_or_create(
+            game=game_platform.game,
+            platform=Platform.STEAM,
+            defaults=price_data,
+        )
+     
     return Response({ "ok": True })

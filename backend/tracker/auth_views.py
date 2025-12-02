@@ -1,16 +1,41 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_protect
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 @api_view(["GET"])
 def get_csrf(request):
     csrf_token = get_token(request)
     return Response({ "csrfToken": csrf_token })
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@csrf_protect
+def register_view(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+    email = request.data.get("email")
+    
+    if not username or not password:
+        return Response({"error": "Username and password are required"}, status=400)
+    
+    try:
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+    except IntegrityError:
+        return Response({"error": "Username already exists"}, status=400)
+    
+    login(request._request, user)
+    return Response({ "ok": True, "username": user.username }, status=201)
 
 @api_view(["POST"])
 @authentication_classes([])

@@ -1,10 +1,19 @@
 <template>
-  <div class="login-page">
+  <div class="register-page">
     <div class="card">
-      <h1>Sign in</h1>
-      <p class="muted">Access your wishlist dashboard</p>
+      <h1>Register</h1>
+      <p class="muted">Create an account for your dashboard</p>
 
       <form @submit.prevent="onSubmit">
+        <label>
+          Email
+          <input
+            v-model="email"
+            type="text"
+            autocomplete="email"
+            required
+          />
+        </label>
         <label>
           Username
           <input
@@ -23,12 +32,19 @@
             required
           />
         </label>
+        <label>
+          Confirm Password
+          <input
+            v-model="confirmPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
         <button type="submit" :disabled="loading">
-          {{ loading ? "Signing in…" : "Login" }}
+          {{ loading ? "Registering..." : "Register" }}
         </button>
       </form>
-
-      <p>Do not have an account yet? <RouterLink to="/register">Register here</RouterLink></p>
 
       <p v-if="error" class="error">{{ error }}</p>
     </div>
@@ -42,10 +58,11 @@ import { ref, onMounted } from "vue";
 import { useCsrf } from "@/composables/useCsrf";
 import { getCookie } from "@/helper/getCookie";
 import { useAuthStore } from "@/stores/auth";
-import { RouterLink } from "vue-router";
 
+const email = ref("");
 const username = ref("");
 const password = ref("");
+const confirmPassword = ref("");
 const error = ref("");
 const loading = ref(false);
 
@@ -72,6 +89,11 @@ onMounted(async () => {
 });
 
 const onSubmit = async () => {
+  if (password.value !== confirmPassword.value) {
+    error.value = "Passwords do not match";
+    return;
+  }
+
   await useCsrf();
   const csrfToken = getCookie("csrftoken");
 
@@ -83,8 +105,9 @@ const onSubmit = async () => {
       ok: boolean;
       username: string;
     }>(
-      "http://localhost:8000/api/auth/login/",
+      "http://localhost:8000/api/auth/register/",
       {
+        email: email.value,
         username: username.value,
         password: password.value,
       },
@@ -104,7 +127,7 @@ const onSubmit = async () => {
 
     await router.push("/");
   } catch (e: any) {
-    error.value = e?.data?.error || "Login failed";
+    error.value = e?.data?.error || "Register failed";
   } finally {
     loading.value = false;
   }
@@ -112,7 +135,7 @@ const onSubmit = async () => {
 </script>
 
 <style>
-.login-page {
+.register-page {
   min-height: 85vh;
   display: grid;
   place-items: center;
@@ -167,9 +190,13 @@ button {
   padding: 10px 14px;
   font-weight: 700;
   cursor: pointer;
-  background: var(--accent);
+  background: green;
   color: white;
   transition: opacity 0.2s ease;
+}
+
+button:hover {
+  filter: brightness(0.8);
 }
 
 button:disabled {

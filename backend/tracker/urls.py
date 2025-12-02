@@ -5,6 +5,7 @@ urlpatterns = [
     # Auth
     path("auth/csrf/", auth_views.get_csrf, name="get_csrf"),
     path("auth/session/", auth_views.session_view, name="session"),
+    path("auth/register/", auth_views.register_view, name="register"),
     path("auth/login/", auth_views.login_view, name="login"),
     path("auth/logout/", auth_views.logout_view, name="logout"),
     
