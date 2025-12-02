@@ -1,11 +1,12 @@
 <template>
   <header class="main-header">
+    <i class="pi pi-github"></i><h1 class="main-title">Game Price Tracker</h1>
     <nav>
       <RouterLink to="/">My Wishlist</RouterLink>
       <RouterLink to="/about">About</RouterLink>
     </nav>
     <div class="nav-actions">
-      <button v-if="auth.isAuthenticated" @click="handleLogout">Logout</button>
+      <button v-if="auth.isAuthenticated" @click="handleLogout" class="logout-btn">Logout</button>
       <RouterLink v-else to="/login" class="login-btn">Login</RouterLink>
     </div>
   </header>
@@ -37,7 +38,11 @@ async function handleLogout() {
 }
 </script>
 
-<style>
+<style scoped>
+.main-title {
+  padding-right: 1rem;
+}
+
 .main-header {
   display: flex;
   justify-content: space-between;
@@ -45,6 +50,10 @@ async function handleLogout() {
   padding: 1rem;
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+
+i {
+  padding-right: 1rem;
 }
 
 nav {
@@ -57,6 +66,10 @@ nav a {
   color: var(--text);
 }
 
+nav a:hover {
+  filter: brightness(0.8);
+}
+
 .nav-actions {
   margin-left: auto;
 }
@@ -67,5 +80,17 @@ nav a {
   padding: 8px 12px;
   border-radius: 6px;
   text-decoration: none;
+}
+
+.login-btn:hover {
+  filter: brightness(0.8);
+}
+
+.logout-btn {
+  background: darkred;
+}
+
+.logout-btn:hover {
+  filter: brightness(0.8);
 }
 </style>

@@ -1,10 +1,9 @@
 <template>
-  <div class="page">
+  <div class="wishlist-page">
     <section class="hero">
-      <div>
-        <p class="eyebrow">Your wishlist</p>
-        <h1>Game Price Tracker</h1>
-        <p class="subhead">Search Steam titles and keep an eye on live prices.</p>
+      <div class="wishlist-title">
+        <h1>Your Wishlist</h1>
+        <p class="subhead">Search Steam titles and keep an eye on their live prices!</p>
       </div>
     </section>
 
@@ -28,9 +27,12 @@
 
 <script setup lang="ts">
 import axios from 'axios'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import GameSearchCard from '@/components/GameSearchCard.vue'
 import WishlistCard from '@/components/WishlistCard.vue'
+import { useToast } from 'vue-toastification'
+import { useCsrf } from '@/composables/useCsrf'
+import { getCookie } from '@/helper/getCookie'
 
 type WishlistItem = {
   id: number
@@ -54,6 +56,8 @@ const searchLoading = ref(false)
 const wishlistAddLoading = ref(false)
 const error = ref('')
 const success = ref('')
+
+const toast = useToast();
 
 const fetchWishlist = async () => {
   error.value = ''
@@ -90,16 +94,26 @@ const searchGames = async () => {
 const addToWishlist = async (appid: string | null) => {
   if (!appid) return
 
+  await useCsrf()
+  const csrfToken = getCookie('csrftoken')
+
   wishlistAddLoading.value = true
   error.value = ''
   success.value = ''
 
   try {
-    await axios.post('http://localhost:8000/api/wishlist/add/', {
-      body: { appid },
-      credentials: 'include',
-    })
+    await axios.post('http://localhost:8000/api/wishlist/add/',
+      { appid },
+      {
+        withCredentials: true,
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/json',
+        },
+      },
+    )
     success.value = 'Added to wishlist successfully'
+    toast.success('Game added to wishlist successfully!')
     await fetchWishlist()
   } catch (e: any) {
     error.value = e?.data?.error || 'Could not add to wishlist'
@@ -128,20 +142,27 @@ onMounted(() => {
   font-family: "Segoe UI", sans-serif;
 }
 
-.page {
+.wishlist-page {
+  max-width: 1800px;
+  margin: 0 auto;
   padding: 24px;
   color: var(--text);
   background: var(--bg);
   min-height: 100vh;
 }
 
+.wishlist-title h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.subhead {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
 .hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 .eyebrow {
@@ -151,16 +172,6 @@ onMounted(() => {
   color: var(--muted);
   margin: 0 0 6px;
   padding-top: 0.5rem;
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-.subhead {
-  margin: 4px 0 0;
-  color: var(--muted);
 }
 
 .search-box {
@@ -184,12 +195,23 @@ input[type="search"] {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: flex-start;
+  }
 }
 
 .panel {
   background: var(--panel);
   border-radius: 14px;
   padding: 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .panel-head {

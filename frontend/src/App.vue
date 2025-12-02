@@ -20,9 +20,4 @@ import { RouterView } from 'vue-router';
   display: flex;
   flex-direction: column;
 }
-
-.page {
-  flex: 1;
-  display: flex;
-}
 </style>

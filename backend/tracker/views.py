@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from tracker.models import Game, GamePlatform, GamePriceCurrent, Platform, WishList
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def search_games(request):
     query = request.GET.get("query", "").strip()
     if not query:
