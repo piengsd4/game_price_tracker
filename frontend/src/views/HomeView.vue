@@ -9,61 +9,16 @@
     </section>
 
     <section class="grid">
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">Add</p>
-            <h2>Search results</h2>
-          </div>
-          <span class="muted">{{ searchResults.length }} found</span>
-        </div>
-        <div class="search-box">
-          <input v-model="query" type="search" placeholder="Search Steam games..." @focus="searchGames" />
-          <button class="primary" @click="searchGames" :disabled="searchLoading">
-            {{ searchLoading ? "Searching..." : "Search" }}
-          </button>
-        </div>
-        <div v-if="searchLoading" class="empty"><p>Searching…</p></div>
-        <div v-else-if="query && searchResults.length" class="list">
-          <div class="list-row" v-for="game in searchResults" :key="game.steam_appid || game.title">
-            <div>
-              <p class="title">{{ game.title }}</p>
-              <p class="muted">AppID: {{ game.steam_appid ?? "—" }}</p>
-            </div>
-            <button class="secondary" @click="addToWishlist(game.steam_appid)" :disabled="addLoading || !game.steam_appid">
-              Add
-            </button>
-          </div>
-        </div>
-        <div v-else-if="query" class="empty"><p>No matches. Try another search.</p></div>
-        <div v-else class="empty"><p>Search to add games to your wishlist.</p></div>
-      </article>
+      <GameSearchCard
+        v-model:query="query"
+        :search-results="searchResults"
+        :search-loading="searchLoading"
+        :wishlist-add-loading="wishlistAddLoading"
+        @search="searchGames"
+        @add-to-wishlist="addToWishlist"
+      />
 
-      <article class="panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">Wishlist</p>
-            <h2>Your wishlisted games</h2>
-          </div>
-          <span class="muted">{{ wishlist.length }} total</span>
-        </div>
-        <div class="list" v-if="wishlist.length">
-          <div class="list-row" v-for="item in wishlist" :key="item.id">
-            <div>
-              <p class="title">{{ item.title }}</p>
-              <p class="muted">AppID: {{ item.steam_appid ?? "—" }}</p>
-            </div>
-            <div class="price-badge" v-if="item.price !== null && item.price !== undefined">
-              <span class="price">{{ item.currency }} {{ item.price }}</span>
-              <span class="discount" v-if="item.discount_percent">-{{ item.discount_percent }}%</span>
-            </div>
-            <span class="muted" v-else>Price unavailable</span>
-          </div>
-        </div>
-        <div class="empty" v-else>
-          <p>No game wishlisted yet. Add by searching on the left panel</p>
-        </div>
-      </article>
+      <WishlistCard :wishlist="wishlist" />
     </section>
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -72,7 +27,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue"
+import axios from 'axios'
+import { onMounted, ref, watch } from 'vue'
+import GameSearchCard from '@/components/GameSearchCard.vue'
+import WishlistCard from '@/components/WishlistCard.vue'
 
 type WishlistItem = {
   id: number
@@ -89,20 +47,21 @@ type SearchResult = {
   similarity?: number
 }
 
-const query = ref("")
+const query = ref('')
 const wishlist = ref<WishlistItem[]>([])
 const searchResults = ref<SearchResult[]>([])
 const searchLoading = ref(false)
-const addLoading = ref(false)
-const error = ref("")
-const success = ref("")
+const wishlistAddLoading = ref(false)
+const error = ref('')
+const success = ref('')
 
 const fetchWishlist = async () => {
-  error.value = ""
-  const data = await $fetch<WishlistItem[]>("http://localhost:8000/api/wishlist/steam", {
-    credentials: "include",
-  })
-  wishlist.value = data
+  error.value = ''
+  const res = await axios.get<WishlistItem[]>(
+    'http://localhost:8000/api/wishlist/steam',
+    { withCredentials: true },
+  )
+  wishlist.value = res.data
 }
 
 const searchGames = async () => {
@@ -110,42 +69,49 @@ const searchGames = async () => {
     searchResults.value = []
     return
   }
+
   searchLoading.value = true
-  error.value = ""
+  error.value = ''
   try {
-    const data = await $fetch<SearchResult[]>(
-      `http://localhost:8000/api/search/?query=${encodeURIComponent(query.value)}`,
-      { credentials: "include" }
+    const res = await axios.get<SearchResult[]>(
+      `http://localhost:8000/api/search/?query=${encodeURIComponent(
+        query.value,
+      )}`,
+      { withCredentials: true },
     )
-    searchResults.value = data
+    searchResults.value = res.data
   } catch (e: any) {
-    error.value = e?.data?.error || "Search failed"
+    error.value = e?.data?.error || 'Search failed'
   } finally {
     searchLoading.value = false
   }
 }
 
-const addToWishlist = async (appid: string) => {
-  addLoading.value = true
-  error.value = ""
-  success.value = ""
+const addToWishlist = async (appid: string | null) => {
+  if (!appid) return
+
+  wishlistAddLoading.value = true
+  error.value = ''
+  success.value = ''
+
   try {
-    await $fetch("http://localhost:8000/api/wishlist/add/", {
-      method: "POST",
+    await axios.post('http://localhost:8000/api/wishlist/add/', {
       body: { appid },
-      credentials: "include",
+      credentials: 'include',
     })
-    success.value = "Added to wishlist"
+    success.value = 'Added to wishlist successfully'
     await fetchWishlist()
   } catch (e: any) {
-    error.value = e?.data?.error || "Could not add to wishlist"
+    error.value = e?.data?.error || 'Could not add to wishlist'
   } finally {
-    addLoading.value = false
-    setTimeout(() => (success.value = ""), 1500)
+    wishlistAddLoading.value = false
+    setTimeout(() => (success.value = ''), 1500)
   }
 }
 
+// debounce search on query change
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
 watch(query, () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => searchGames(), 300)
@@ -165,6 +131,8 @@ onMounted(() => {
 .page {
   padding: 24px;
   color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
 }
 
 .hero {
@@ -210,7 +178,6 @@ input[type="search"] {
   border: 1px solid rgba(0,0,0,0.08);
   background: var(--panel);
   color: var(--text);
-  box-shadow: var(--shadow);
 }
 
 .grid {
@@ -223,7 +190,6 @@ input[type="search"] {
   background: var(--panel);
   border-radius: 14px;
   padding: 14px;
-  box-shadow: var(--shadow);
 }
 
 .panel-head {

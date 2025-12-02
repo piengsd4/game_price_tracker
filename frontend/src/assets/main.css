@@ -1,0 +1,17 @@
+:root {
+  --bg: #0b1220;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --panel: #111827;
+  --accent: #3b82f6;
+  --shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  scrollbar-gutter: stable;
+}
