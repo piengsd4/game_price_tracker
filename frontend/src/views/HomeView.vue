@@ -166,7 +166,7 @@ const handleRemoveWishlistGame = async (appid: string | null) => {
   }
 }
 
-// debounce search on query change
+// debounce search on query change when user is typing so that we don't search on every keystroke
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(query, () => {

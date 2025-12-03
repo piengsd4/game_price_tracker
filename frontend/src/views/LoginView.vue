@@ -63,7 +63,6 @@ onMounted(async () => {
 
   if (res.data.authenticated) {
     auth.setUser({
-      id: 0,
       username: res.data.username ?? "",
     });
   } else {
@@ -98,7 +97,6 @@ const onSubmit = async () => {
     );
 
     auth.setUser({
-      id: 0,
       username: res.data.username,
     });
 

@@ -24,7 +24,7 @@
           class="price-badge"
           v-if="item.price !== null && item.price !== undefined"
         >
-          <span class="price">{{ item.price }} {{ item.currency }}</span>
+          <span class="price"><b>{{ item.price }} {{ item.currency }}</b></span>
           <span class="discount" v-if="item.discount_percent">
             (-{{ item.discount_percent }}%)
           </span>
